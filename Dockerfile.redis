@@ -1,0 +1,38 @@
+FROM redis:6 as builder
+
+ENV DEPS "curl git python python-setuptools python-pip wget unzip build-essential clang-6.0 cmake automake peg libtool autoconf m4 peg"
+
+# Install git, curl, gcc toolchain, clang, cmake, rust and cargo. Create build folder
+RUN apt-get update && apt-get install -y --no-install-recommends $DEPS && \
+    curl https://sh.rustup.rs -sSf | sh -s -- -y -q && \
+    mkdir -p /root/build && mkdir -p /root/redis-modules
+
+ENV LLVM_CONFIG_PATH /usr/bin/llvm-config-6
+
+# Build and install rejson
+RUN cd /root/build && \
+    git clone https://github.com/RedisJSON/RedisJSON.git && cd RedisJSON && \
+    /root/.cargo/bin/cargo build --release && \
+    cp ./target/release/librejson.so /root/redis-modules/rejson.so
+
+# Build and install redis-graph
+RUN cd /root/build && \
+    git clone https://github.com/RedisGraph/RedisGraph.git --recurse-submodules && cd RedisGraph && \
+    make clean; make all && \
+    cp src/redisgraph.so /root/redis-modules/redisgraph.so
+
+# Package the runner
+FROM redis:6
+ENV LIBDIR /usr/lib/redis/modules
+WORKDIR /data
+RUN set -ex;\
+    mkdir -p "$LIBDIR";\
+    apt-get update;\
+    apt-get install -y --no-install-recommends libgomp1;
+
+COPY --from=builder /root/redis-modules/redisgraph.so "$LIBDIR"
+COPY --from=builder /root/redis-modules/rejson.so "$LIBDIR"
+
+EXPOSE 6379
+
+CMD ["redis-server", "/url/lib/redis/redis.conf"]

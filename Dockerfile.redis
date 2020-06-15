@@ -35,4 +35,4 @@ COPY --from=builder /root/redis-modules/rejson.so "$LIBDIR"
 
 EXPOSE 6379
 
-CMD ["redis-server", "/url/lib/redis/redis.conf"]
+CMD ["redis-server", "/etc/redis/redis.conf"]

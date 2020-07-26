@@ -9,11 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends $DEPS && \
 
 ENV LLVM_CONFIG_PATH /usr/bin/llvm-config-6
 
-# Build and install rejson
+# Download and install rejson
 RUN cd /root/build && \
-    git clone https://github.com/RedisJSON/RedisJSON.git && cd RedisJSON && \
-    /root/.cargo/bin/cargo build --release && \
-    cp ./target/release/librejson.so /root/redis-modules/rejson.so
+    wget -q https://github.com/RedisJSON/RedisJSON/releases/download/v1.0.4/rejson.so && \
+    chmod +x rejson.so && \
+    cp ./rejson.so /root/redis-modules/rejson.so
 
 # Build and install redis-graph
 RUN cd /root/build && \
